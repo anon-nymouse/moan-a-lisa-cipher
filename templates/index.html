@@ -15,6 +15,9 @@
         .preview-box { margin-top: 1.5rem; display: none; text-align: center; border-top: 1px solid #f1f5f9; padding-top: 1.5rem; }
         #previewImg { max-width: 100%; border-radius: 0.5rem; margin-bottom: 1rem; }
         .result-text { color: #059669; font-weight: 700; margin-top: 1rem; padding: 1rem; background: #f0fdf4; border-radius: 0.5rem; display: none; }
+
+        /* New status style */
+        .status-msg { font-size: 0.875rem; color: #64748b; margin-top: 0.5rem; font-style: italic; }
     </style>
 </head>
 <body>
@@ -22,10 +25,13 @@
 <div class="container">
     <div class="card">
         <h2>Encode</h2>
-        <P>Enter custom image(OPTIONAL) ->
+        <p>Enter custom image(OPTIONAL) ->
         <input type="file" id="encFile" accept="image/png">
-        </P>
+        </p>
         <input type="text" id="encMsg" placeholder="Enter secret message...">
+
+        <div id="encStatus" class="status-msg"></div>
+
         <button onclick="handleEncode()">Process Image</button>
 
         <div id="encPreview" class="preview-box">
@@ -37,6 +43,9 @@
     <div class="card">
         <h2>Decode</h2>
         <input type="file" id="decFile" accept="image/png">
+
+        <div id="decStatus" class="status-msg"></div>
+
         <button onclick="handleDecode()" style="margin-top: 1rem;">Extract Message</button>
         <div id="decResult" class="result-text"></div>
     </div>
@@ -48,20 +57,34 @@
     async function handleEncode() {
         const msg = document.getElementById('encMsg').value;
         const file = document.getElementById('encFile').files[0];
+        const status = document.getElementById('encStatus');
+
         if(!msg) return alert("Message required");
+
+        // Set status to coding
+        status.innerText = "encoding using c++...";
 
         const fd = new FormData();
         fd.append("message", msg);
         if(file) fd.append("file", file);
 
-        const res = await fetch('/hide', { method: 'POST', body: fd });
-        if(res.ok) {
-            const blob = await res.blob();
-            if(activeUrl) URL.revokeObjectURL(activeUrl);
-            activeUrl = URL.createObjectURL(blob);
+        try {
+            const res = await fetch('/hide', { method: 'POST', body: fd });
+            if(res.ok) {
+                const blob = await res.blob();
+                if(activeUrl) URL.revokeObjectURL(activeUrl);
+                activeUrl = URL.createObjectURL(blob);
 
-            document.getElementById('previewImg').src = activeUrl;
-            document.getElementById('encPreview').style.display = 'block';
+                document.getElementById('previewImg').src = activeUrl;
+                document.getElementById('encPreview').style.display = 'block';
+
+                // Set status to done
+                status.innerText = "encoding done";
+            } else {
+                status.innerText = "encoding failed";
+            }
+        } catch (e) {
+            status.innerText = "Error occurred";
         }
     }
 
@@ -73,18 +96,31 @@
     }
 
     async function handleDecode() {
+        status.innerText = "Running c++ script to decode";
         const file = document.getElementById('decFile').files[0];
+        const status = document.getElementById('decStatus');
+
         if(!file) return alert("Select file");
+
+        // Set status to decoding
+        status.innerText = "decoding is shown below";
 
         const fd = new FormData();
         fd.append("file", file);
 
-        const res = await fetch('/extract', { method: 'POST', body: fd });
-        const data = await res.json();
-        const box = document.getElementById('decResult');
+        try {
+            const res = await fetch('/extract', { method: 'POST', body: fd });
+            const data = await res.json();
+            const box = document.getElementById('decResult');
 
-        box.innerText = res.ok ? `Secret: ${data.message}` : `Error: ${data.detail}`;
-        box.style.display = 'block';
+            box.innerText = res.ok ? `Secret: ${data.message}` : `Error: ${data.detail}`;
+            box.style.display = 'block';
+
+            // Set status to done
+            status.innerText = res.ok ? "decoding done" : "decoding failed";
+        } catch (e) {
+            status.innerText = "Error occurred";
+        }
     }
 </script>
 
