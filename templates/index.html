@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>StegoEngine</title>
+    <style>
+        body { font-family: 'Inter', system-ui, sans-serif; background: #f8fafc; color: #1e293b; display: flex; flex-direction: column; align-items: center; padding: 40px; }
+        .container { width: 100%; max-width: 600px; }
+        .card { background: white; padding: 2rem; border-radius: 1rem; box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1); margin-bottom: 2rem; border: 1px solid #e2e8f0; }
+        h2 { margin: 0 0 1.5rem 0; font-size: 1.25rem; display: flex; align-items: center; gap: 0.5rem; }
+        input[type="text"] { width: 100%; padding: 0.75rem; margin: 1rem 0; border: 1px solid #cbd5e1; border-radius: 0.5rem; box-sizing: border-box; }
+        input[type="file"] { font-size: 0.875rem; color: #64748b; }
+        button { width: 100%; background: #0f172a; color: white; border: none; padding: 0.75rem; border-radius: 0.5rem; font-weight: 600; cursor: pointer; transition: opacity 0.2s; }
+        button:hover { opacity: 0.9; }
+        .preview-box { margin-top: 1.5rem; display: none; text-align: center; border-top: 1px solid #f1f5f9; padding-top: 1.5rem; }
+        #previewImg { max-width: 100%; border-radius: 0.5rem; margin-bottom: 1rem; }
+        .result-text { color: #059669; font-weight: 700; margin-top: 1rem; padding: 1rem; background: #f0fdf4; border-radius: 0.5rem; display: none; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <div class="card">
+        <h2>Encode</h2>
+        <P>Enter custom image(OPTIONAL) ->
+        <input type="file" id="encFile" accept="image/png">
+        </P>
+        <input type="text" id="encMsg" placeholder="Enter secret message...">
+        <button onclick="handleEncode()">Process Image</button>
+
+        <div id="encPreview" class="preview-box">
+            <img id="previewImg" src="">
+            <button onclick="downloadActive()" style="background: #10b981;">Download Result</button>
+        </div>
+    </div>
+
+    <div class="card">
+        <h2>Decode</h2>
+        <input type="file" id="decFile" accept="image/png">
+        <button onclick="handleDecode()" style="margin-top: 1rem;">Extract Message</button>
+        <div id="decResult" class="result-text"></div>
+    </div>
+</div>
+
+<script>
+    let activeUrl = null;
+
+    async function handleEncode() {
+        const msg = document.getElementById('encMsg').value;
+        const file = document.getElementById('encFile').files[0];
+        if(!msg) return alert("Message required");
+
+        const fd = new FormData();
+        fd.append("message", msg);
+        if(file) fd.append("file", file);
+
+        const res = await fetch('/hide', { method: 'POST', body: fd });
+        if(res.ok) {
+            const blob = await res.blob();
+            if(activeUrl) URL.revokeObjectURL(activeUrl);
+            activeUrl = URL.createObjectURL(blob);
+
+            document.getElementById('previewImg').src = activeUrl;
+            document.getElementById('encPreview').style.display = 'block';
+        }
+    }
+
+    function downloadActive() {
+        const a = document.createElement('a');
+        a.href = activeUrl;
+        a.download = "encoded.png";
+        a.click();
+    }
+
+    async function handleDecode() {
+        const file = document.getElementById('decFile').files[0];
+        if(!file) return alert("Select file");
+
+        const fd = new FormData();
+        fd.append("file", file);
+
+        const res = await fetch('/extract', { method: 'POST', body: fd });
+        const data = await res.json();
+        const box = document.getElementById('decResult');
+
+        box.innerText = res.ok ? `Secret: ${data.message}` : `Error: ${data.detail}`;
+        box.style.display = 'block';
+    }
+</script>
+
+</body>
+</html>
