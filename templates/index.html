@@ -27,10 +27,12 @@
 
         <div id="shareBox" class="share-box">
             <strong>One-Time Shareable Link:</strong><br>
-            <span id="shareUrl" class="link-text"></span>
-            <p style="font-size: 0.75rem; color: #666;">Warning: This link will work only ONCE.</p>
+            <div style="display: flex; gap: 10px; align-items: center; margin-top: 10px;">
+                <span id="shareUrl" class="link-text" style="flex-grow: 1; background: white; padding: 5px; border-radius: 4px; border: 1px solid #d1fae5;"></span>
+                <button id="copyBtn" onclick="copyLink()" style="width: auto; padding: 5px 15px; font-size: 0.8rem; background: #10b981;">Copy</button>
+            </div>
+            <p style="font-size: 0.75rem; color: #666; margin-top: 10px;">Warning: This link will work only ONCE.</p>
         </div>
-    </div>
 
     <div class="card">
         <h2>Decode</h2>
@@ -89,6 +91,32 @@
             alert("Error connecting to server");
         }
     }
+    function copyLink() {
+        const linkText = document.getElementById('shareUrl').innerText;
+        const copyBtn = document.getElementById('copyBtn');
+    
+        if (!linkText) return;
+    
+        // Use the Clipboard API
+        navigator.clipboard.writeText(linkText).then(() => {
+            // Visual Feedback
+            const originalText = copyBtn.innerText;
+            const originalBg = copyBtn.style.background;
+    
+            copyBtn.innerText = "Copied!";
+            copyBtn.style.background = "#059669"; // Darker green
+    
+            // Reset button after 2 seconds
+            setTimeout(() => {
+                copyBtn.innerText = originalText;
+                copyBtn.style.background = originalBg;
+            }, 2000);
+        }).catch(err => {
+            console.error('Failed to copy: ', err);
+            alert("Could not copy link. Please select and copy manually.");
+        });
+    }
 </script>
 </body>
 </html>
+
